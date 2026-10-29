@@ -45,6 +45,10 @@
 
 html {
   scroll-behavior: smooth;
+  /* 安卓 Chrome / 微信：点按时默认会闪一块蓝色高亮，整站关掉 */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 /* 初始隐藏，JS 滚到视口时加 .is-revealed 显现 */
@@ -267,7 +271,14 @@ html {
   position: sticky !important;
   top: 0 !important;
   z-index: var(--vp-z-index-nav);
-  animation: hyplay-nav-in 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.08s both;
+  /* 不要在这里写 transform / animation / filter：
+     一旦 .vp-nav 保留变换，它就会成为手机端 position:fixed 菜单面板
+     .vp-nav-screen 的包含块，菜单只能撑到顶栏那么高，看起来就是「点不开」 */
+}
+
+/* 入场动画挂到 .vp-navbar 上，避让上面的包含块问题 */
+.vp-layout .vp-nav .vp-navbar {
+  animation: hyplay-nav-in 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.08s backwards;
 }
 
 @keyframes hyplay-nav-in {
@@ -399,18 +410,49 @@ html {
   box-shadow: 0 0 0 4px var(--vp-c-brand-soft);
 }
 
-/* 移动端汉堡按钮 */
-.vp-nav .vp-navbar .hamburger {
+/* 移动端汉堡按钮（主题里实际类名是 .vp-navbar-hamburger） */
+.vp-nav .vp-navbar .vp-navbar-hamburger {
   border-radius: 8px;
   transition: background-color 0.3s ease;
 }
 
-.vp-nav .vp-navbar .hamburger:hover {
+.vp-nav .vp-navbar .vp-navbar-hamburger:hover,
+.vp-nav .vp-navbar .vp-navbar-hamburger.active {
   background-color: var(--vp-c-brand-soft);
 }
 
+/* 手机端菜单面板：可惯性滚动、底部留出安全区，深色下压一层实底保证可读 */
+.vp-nav-screen {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+}
+
+[data-theme='dark'] .vp-nav-screen {
+  background-color: rgba(15, 17, 24, 0.97);
+}
+
+.vp-nav-screen-menu-link,
+.vp-nav-screen-menu-group .button,
+.vp-nav-screen-menu-group-link {
+  min-height: 44px;
+}
+
+/* 触屏上按钮/导航不做文本选择与蓝色点按高亮 */
+.vp-navbar,
+.vp-nav-screen,
+.vp-home-hero .actions,
+.hyplay-card,
+.hyplay-stage,
+.hyplay-panel,
+.hyplay-video {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .vp-layout .vp-nav {
+  .vp-layout .vp-nav .vp-navbar {
     animation: none;
   }
 
@@ -624,6 +666,13 @@ html {
   .hyplay-cursor-dot,
   .hyplay-cursor-ring {
     display: none !important;
+  }
+
+  /* 触屏没有鼠标，3D 倾斜不会触发；关掉 will-change 省内存、减少安卓卡顿 */
+  .hyplay-card,
+  .hyplay-stage,
+  .vp-home-features .vp-home-feature {
+    will-change: auto;
   }
 }
 
