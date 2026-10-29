@@ -1,0 +1,13 @@
+# 依赖
+node_modules/
+
+# VuePress 构建缓存与产物
+docs/.vuepress/.temp/
+docs/.vuepress/.cache/
+docs/.vuepress/dist/
+
+# 日志
+*.log
+
+# Visual Studio / IDE 工作区
+.vs/

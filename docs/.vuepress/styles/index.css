@@ -1,0 +1,769 @@
+/* ---------- 基础：Minecraft 字体（沿用原站字体） ---------- */
+@font-face {
+  font-family: 'Minecraft';
+  src: url('/fonts/Minecraft_Ae.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ---------- 主题色：沿用原站 #5e72e4 ---------- */
+:root {
+  --vp-c-brand-1: #5e72e4;
+  --vp-c-brand-2: #7b8cf0;
+  --vp-c-brand-3: #4a5fd1;
+  --vp-c-brand-soft: rgba(94, 114, 228, 0.14);
+  --hyplay-card-bg: rgba(94, 114, 228, 0.08);
+  --hyplay-card-border: rgba(94, 114, 228, 0.22);
+}
+
+[data-theme='dark'] {
+  --vp-c-brand-1: #7b8cf0;
+  --vp-c-brand-2: #94a3f5;
+  --vp-c-brand-3: #5e72e4;
+  --vp-c-brand-soft: rgba(123, 140, 240, 0.16);
+  --hyplay-card-bg: rgba(255, 255, 255, 0.05);
+  --hyplay-card-border: rgba(255, 255, 255, 0.14);
+}
+
+/* 卡片内部光团的透明度：注册成可动画的自定义属性，hover 时平滑淡入 */
+@property --hyplay-blob {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 0;
+}
+
+/* ============================================================
+   全站动效：滚动入场显现 + 顶部进度条 + 平滑滚动
+   ============================================================ */
+:root {
+  --hyplay-reveal-shift: -52px;
+  --hyplay-reveal-blur: 6px;
+  --hyplay-reveal-duration: 0.85s;
+  --hyplay-reveal-ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* 初始隐藏，JS 滚到视口时加 .is-revealed 显现 */
+[data-reveal] {
+  opacity: 0;
+  translate: 0 var(--hyplay-reveal-shift);
+  scale: 0.985;
+  filter: blur(var(--hyplay-reveal-blur));
+  transition:
+    opacity var(--hyplay-reveal-duration) var(--hyplay-reveal-ease) var(--reveal-delay, 0ms),
+    translate var(--hyplay-reveal-duration) var(--hyplay-reveal-ease) var(--reveal-delay, 0ms),
+    scale var(--hyplay-reveal-duration) var(--hyplay-reveal-ease) var(--reveal-delay, 0ms),
+    filter var(--hyplay-reveal-duration) ease var(--reveal-delay, 0ms);
+}
+
+/* 自动扫描到的元素用更轻的位移，避免整页“跳” */
+[data-reveal='soft'] {
+  --hyplay-reveal-shift: -24px;
+  --hyplay-reveal-blur: 3px;
+  --hyplay-reveal-duration: 0.6s;
+}
+
+[data-reveal].is-revealed {
+  opacity: 1;
+  translate: 0 0;
+  scale: 1;
+  filter: blur(0);
+}
+
+/* 顶部滚动进度条 */
+.hyplay-progress {
+  position: fixed;
+  z-index: 3000;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, var(--vp-c-brand-1), #a78bfa);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  [data-reveal] {
+    opacity: 1;
+    translate: none;
+    scale: none;
+    filter: none;
+    transition: none;
+  }
+}
+
+/* ---------- 首页 Hero：背景图上白字，避免主题默认渐变标题 ---------- */
+.vp-home-hero .hero-name {
+  background: none;
+  color: #fff;
+  font-family: 'Minecraft', var(--vp-font-family-base);
+  letter-spacing: 1px;
+  text-shadow: 0 6px 30px rgba(0, 0, 0, 0.45);
+  -webkit-text-fill-color: #fff;
+}
+
+.vp-home-hero .hero-tagline {
+  color: #fff;
+  font-family: 'Minecraft', var(--vp-font-family-base);
+  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  font-size: clamp(1.5rem, 4vw, 2.25rem);
+  font-weight: 600;
+}
+
+.vp-home-hero .hero-text {
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.55);
+}
+
+/* ---------- 导航 logo 稍微圆角，和卡片风格统一 ---------- */
+.vp-navbar .vp-nav-logo img,
+.vp-sidebar .vp-sidebar-logo img {
+  border-radius: 6px;
+}
+
+/* ---------- 入服 / 服务器信息页：内容区加宽，两列卡片更舒展 ---------- */
+.vp-doc-container:not(.has-sidebar) .content:has(.hyplay-entry),
+.vp-doc-container:not(.has-sidebar) .content:has(.hyplay-server) {
+  max-width: 1080px !important;
+}
+
+/* ---------- 中文断行优化：避免词语被拆到两行 ---------- */
+.vp-doc p,
+.vp-doc li,
+.hyplay-step-text,
+.hyplay-card-desc,
+.hyplay-tip,
+.hyplay-stage-desc,
+.hyplay-note {
+  text-wrap: pretty;
+  word-break: normal;
+  line-break: strict;
+}
+
+/* ---------- 文档标题字体 ---------- */
+.vp-doc h1,
+.vp-doc h2,
+.vp-doc h3 {
+  font-family: 'Minecraft', var(--vp-font-family-base);
+  letter-spacing: 0.5px;
+}
+
+/* ---------- 首页 features 区域标题 ---------- */
+.vp-home-features > .container > .title,
+.vp-home-features > .container > .description {
+  text-align: center;
+}
+
+/* ---------- 首页特性卡片：统一等高、左对齐、图标方块 ---------- */
+.vp-home-features .items {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin: 0 !important;
+}
+
+.vp-home-features .item {
+  width: 100% !important;
+  padding: 0 !important;
+}
+
+.vp-home-features .vp-home-feature .box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  height: 100%;
+  padding: 26px 28px 24px;
+  text-align: left;
+  transition: translate 0.35s ease, box-shadow 0.35s ease,
+    border-color 0.35s ease;
+}
+
+.vp-home-features .vp-home-feature .box .icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 16px;
+  border: 1px solid var(--hyplay-card-border);
+  border-radius: 15px;
+  background: var(--vp-c-brand-soft);
+  font-size: 24px;
+  color: var(--vp-c-brand-1);
+  transition: translate 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    scale 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.vp-home-features .vp-home-feature .box:hover .icon {
+  translate: 0 -2px;
+  scale: 1.06;
+  background: var(--vp-c-brand-1);
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(94, 114, 228, 0.35);
+}
+
+/* 卡片整体 hover 轻微上浮（边框不再整圈染色，发光交给光标描边高光） */
+.vp-home-features .vp-home-feature .box:hover,
+.hyplay-info:hover {
+  translate: 0 -3px;
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.16);
+}
+
+/* 卡片内的箭头随 hover 右移 */
+.vp-home-features .vp-home-feature .box .link-text-icon {
+  transition: translate 0.25s ease;
+}
+
+.vp-home-features .vp-home-feature .box:hover .link-text-icon {
+  translate: 3px 0;
+}
+
+.vp-home-features .vp-home-feature .box .title {
+  margin: 0;
+  padding: 0;
+  border: none;
+  font-family: 'Minecraft', var(--vp-font-family-base);
+  font-size: 1.05rem;
+  letter-spacing: 0.5px;
+}
+
+.vp-home-features .vp-home-feature .box .details {
+  margin: 8px 0 0;
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--vp-c-text-2);
+}
+
+.vp-home-features .vp-home-feature .box .link-text {
+  margin-top: auto;
+  padding-top: 16px;
+}
+
+.vp-home-features .vp-home-feature .box .link-text-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+/* ============================================================
+   顶栏：吸顶 + 玻璃遮罩 + 交互动效
+   （交互参考 LIGHT.html：下滑入场、滚动加深、渐变下划线）
+   ============================================================ */
+.vp-layout .vp-nav {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: var(--vp-z-index-nav);
+  animation: hyplay-nav-in 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.08s both;
+}
+
+@keyframes hyplay-nav-in {
+  from {
+    transform: translateY(-110%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* 顶栏自身的实色背景让位给玻璃遮罩 */
+.vp-nav .vp-navbar,
+.vp-nav .vp-navbar .content-body,
+.vp-nav .vp-navbar .title {
+  background-color: transparent !important;
+}
+
+.vp-nav .vp-navbar.screen-open {
+  background-color: var(--vp-c-bg) !important;
+}
+
+/* 遮罩颜色随深浅主题变化（浅色要求更白、更不透明，避免背景干扰阅读） */
+:root {
+  --hyplay-nav-veil-strong: rgba(255, 255, 255, 0.98);
+  --hyplay-nav-veil-soft: rgba(255, 255, 255, 0.92);
+  --hyplay-nav-veil-blur: 44px;
+  --hyplay-nav-veil-fade: 78%;
+}
+
+[data-theme='dark'] {
+  --hyplay-nav-veil-strong: rgba(15, 17, 24, 0.92);
+  --hyplay-nav-veil-soft: rgba(15, 17, 24, 0.72);
+  --hyplay-nav-veil-blur: 28px;
+  --hyplay-nav-veil-fade: 64%;
+}
+
+/* 遮罩：顶部实、向下渐隐，叠高强度高斯模糊 */
+.vp-nav .vp-navbar::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0 0 -48px;
+  content: '';
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    var(--hyplay-nav-veil-strong) 0%,
+    var(--hyplay-nav-veil-strong) 34%,
+    var(--hyplay-nav-veil-soft) 72%,
+    transparent 100%
+  );
+  -webkit-backdrop-filter: blur(var(--hyplay-nav-veil-blur)) saturate(185%);
+  backdrop-filter: blur(var(--hyplay-nav-veil-blur)) saturate(185%);
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 var(--hyplay-nav-veil-fade), transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 var(--hyplay-nav-veil-fade), transparent 100%);
+  opacity: 0.82;
+  transition: opacity 0.5s ease;
+}
+
+.vp-nav .vp-navbar:not(.top)::before {
+  opacity: 1;
+}
+
+/* 浅色下额外压一层分隔线，进一步隔离背景图 */
+:root:not([data-theme='dark']) .vp-nav .vp-navbar::before {
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.06);
+}
+
+/* 去掉顶栏下沿的分隔线，避免出现白线 */
+.vp-nav .vp-navbar .divider,
+.vp-nav .vp-navbar .divider-line {
+  display: none !important;
+}
+
+/* logo：悬停轻微旋转放大 */
+.vp-nav .vp-navbar-title .title img {
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.vp-nav .vp-navbar-title .title:hover img {
+  transform: rotate(-8deg) scale(1.08);
+}
+
+/* 导航项：渐变下划线从左展开，收起时向右缩回 */
+.vp-nav .navbar-menu-link {
+  position: relative;
+  letter-spacing: 0.06em;
+}
+
+.vp-nav .navbar-menu-link::after {
+  position: absolute;
+  right: 10px;
+  bottom: 16px;
+  left: 10px;
+  height: 2px;
+  content: '';
+  background: linear-gradient(90deg, var(--vp-c-brand-1), #a78bfa);
+  border-radius: 2px;
+  transform: scaleX(0);
+  transform-origin: 100% 50%;
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.vp-nav .navbar-menu-link:hover::after,
+.vp-nav .navbar-menu-link.active::after {
+  transform: scaleX(1);
+  transform-origin: 0 50%;
+}
+
+/* 导航项图标：悬停轻微上浮 */
+.vp-nav .navbar-menu-link .vp-icon {
+  transition: translate 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.vp-nav .navbar-menu-link:hover .vp-icon {
+  translate: 0 -2px;
+}
+
+/* 明暗切换开关：悬停轻微放大并带一圈柔光 */
+.vp-nav .vp-navbar .vp-switch-appearance {
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+}
+
+.vp-nav .vp-navbar .vp-switch-appearance:hover {
+  transform: scale(1.06);
+  box-shadow: 0 0 0 4px var(--vp-c-brand-soft);
+}
+
+/* 移动端汉堡按钮 */
+.vp-nav .vp-navbar .hamburger {
+  border-radius: 8px;
+  transition: background-color 0.3s ease;
+}
+
+.vp-nav .vp-navbar .hamburger:hover {
+  background-color: var(--vp-c-brand-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vp-layout .vp-nav {
+    animation: none;
+  }
+
+  .vp-nav .navbar-menu-link::after {
+    transition: none;
+  }
+}
+
+/* ---------- 首页卡片：4 张卡按 2×2 排布，避免最后一行的孤卡 ---------- */
+@media (max-width: 719px) {
+  .vp-home-features .items {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================
+   卡片：3D 倾斜 + 跟随光标的光效
+   （参考 LIGHT.html 04「极光引擎」卡片）
+   ============================================================ */
+.hyplay-card,
+.hyplay-stage,
+.vp-home-features .vp-home-feature {
+  --hyplay-r: 18px;
+  --hyplay-blob: 0;
+  position: relative;
+  overflow: visible;
+  transform: translateZ(0);
+  transform-style: preserve-3d;
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  /* 透明 outline 让圆角边框走抗锯齿绘制，消除变换时的毛糙边 */
+  outline: 1px solid transparent;
+  outline-offset: -1px;
+  isolation: isolate;
+  /* 卡片内部跟随光标的光团（透明度由 --hyplay-blob 控制，可平滑过渡） */
+  background-image: radial-gradient(
+    420px circle at var(--mx, 50%) var(--my, 50%),
+    rgba(94, 114, 228, var(--hyplay-blob)),
+    transparent 65%
+  );
+  transition:
+    box-shadow 0.35s ease,
+    border-color 0.35s ease,
+    translate 0.35s ease,
+    --hyplay-blob 0.45s ease;
+}
+
+[data-theme='dark'] .hyplay-card,
+[data-theme='dark'] .hyplay-stage,
+[data-theme='dark'] .vp-home-features .vp-home-feature {
+  background-image: radial-gradient(
+    420px circle at var(--mx, 50%) var(--my, 50%),
+    rgba(123, 140, 240, var(--hyplay-blob)),
+    transparent 65%
+  );
+}
+
+/* 卡片 3D 倾斜的最大角度（比之前稍大一点） */
+.hyplay-card {
+  --hyplay-tilt-max: 13;
+}
+
+.hyplay-stage {
+  --hyplay-tilt-max: 4.5;
+  --hyplay-r: 20px;
+}
+
+.vp-home-features .vp-home-feature {
+  --hyplay-r: 12px;
+  --hyplay-tilt-max: 12;
+}
+
+/*
+ * 鼠标附近的描边高光（类似 Win10 的 Reveal）
+ * 只保留 1px 宽的边框环，用遮罩把中间掏空；
+ * 环上的亮度由径向渐变决定，所以只有靠近光标的一段会发光，越远越暗。
+ */
+.hyplay-card::after,
+.hyplay-stage::after,
+.hyplay-panel::after,
+.vp-home-features .vp-home-feature::after {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  padding: 1px;
+  content: '';
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: 0;
+  background: radial-gradient(
+    110px circle at var(--mx, 50%) var(--my, 50%),
+    rgba(94, 114, 228, 1),
+    rgba(94, 114, 228, 0.5) 42%,
+    transparent 70%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  transition: opacity 0.3s ease;
+}
+
+[data-theme='dark'] .hyplay-card::after,
+[data-theme='dark'] .hyplay-stage::after,
+[data-theme='dark'] .hyplay-panel::after,
+[data-theme='dark'] .vp-home-features .vp-home-feature::after {
+  background: radial-gradient(
+    120px circle at var(--mx, 50%) var(--my, 50%),
+    rgba(123, 140, 240, 1),
+    rgba(123, 140, 240, 0.55) 42%,
+    transparent 72%
+  );
+}
+
+.hyplay-card:hover::after,
+.hyplay-stage:hover::after,
+.hyplay-panel:hover::after,
+.vp-home-features .vp-home-feature:hover::after {
+  opacity: 1;
+}
+
+/* 卡片内部跟随光标的光团：hover 时平滑淡入 */
+.hyplay-card:hover,
+.hyplay-stage:hover,
+.vp-home-features .vp-home-feature:hover {
+  --hyplay-blob: 0.2;
+}
+
+[data-theme='dark'] .hyplay-card:hover,
+[data-theme='dark'] .hyplay-stage:hover,
+[data-theme='dark'] .vp-home-features .vp-home-feature:hover {
+  --hyplay-blob: 0.24;
+}
+
+/* 悬停时不再把整圈边框染色，发光只交给上面的光标高光 */
+.vp-home-features .vp-home-feature.link:hover {
+  border-color: var(--vp-c-bg-soft) !important;
+}
+
+/* ============================================================
+   自定义光标 + 磁吸按钮（参考 LIGHT.html）
+   ============================================================ */
+:root {
+  --hyplay-cursor-ring: rgba(20, 22, 32, 0.38);
+  --hyplay-cursor-ring-strong: rgba(20, 22, 32, 0.72);
+  --hyplay-cursor-hover-bg: rgba(20, 22, 32, 0.06);
+}
+
+[data-theme='dark'] {
+  --hyplay-cursor-ring: rgba(255, 255, 255, 0.4);
+  --hyplay-cursor-ring-strong: rgba(255, 255, 255, 0.72);
+  --hyplay-cursor-hover-bg: rgba(255, 255, 255, 0.07);
+}
+
+.has-cursor,
+.has-cursor * {
+  cursor: none !important;
+}
+
+/* 输入框保留文本光标 */
+.has-cursor input,
+.has-cursor textarea,
+.has-cursor [contenteditable='true'] {
+  cursor: text !important;
+}
+
+.hyplay-cursor-dot,
+.hyplay-cursor-ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 9999;
+  pointer-events: none;
+  border-radius: 50%;
+  opacity: 0;
+}
+
+.hyplay-cursor-dot {
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  background: #fff;
+  mix-blend-mode: difference;
+  transition: opacity 0.3s ease;
+}
+
+.hyplay-cursor-ring {
+  width: 36px;
+  height: 36px;
+  margin: -18px 0 0 -18px;
+  border: 1px solid var(--hyplay-cursor-ring);
+  transition:
+    width 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    height 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    margin 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 0.4s ease,
+    border-color 0.4s ease,
+    opacity 0.3s ease;
+}
+
+.hyplay-cursor-ring.is-hover {
+  width: 56px;
+  height: 56px;
+  margin: -28px 0 0 -28px;
+  background: var(--hyplay-cursor-hover-bg);
+  border-color: var(--hyplay-cursor-ring-strong);
+}
+
+@media (pointer: coarse) {
+  .hyplay-cursor-dot,
+  .hyplay-cursor-ring {
+    display: none !important;
+  }
+}
+
+/* ---------- 首页两个主按钮：磁吸 + 光扫 ---------- */
+.vp-home-hero .actions .vp-button {
+  position: relative;
+  overflow: hidden;
+  will-change: transform;
+  transition:
+    transform 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.4s ease,
+    background-color 0.4s ease,
+    border-color 0.4s ease,
+    color 0.4s ease;
+}
+
+.vp-home-hero .actions .vp-button:hover {
+  box-shadow: 0 12px 32px rgba(94, 114, 228, 0.35);
+}
+
+[data-theme='dark'] .vp-home-hero .actions .vp-button:hover {
+  box-shadow: 0 12px 34px rgba(123, 140, 240, 0.42);
+}
+
+.vp-home-hero .actions .vp-button::after {
+  position: absolute;
+  top: -20%;
+  bottom: -20%;
+  left: -60%;
+  width: 40%;
+  content: '';
+  pointer-events: none;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.38), transparent);
+  opacity: 0;
+  transform: skewX(-18deg);
+}
+
+.vp-home-hero .actions .vp-button:hover::after {
+  animation: hyplay-btn-shine 0.9s ease forwards;
+}
+
+@keyframes hyplay-btn-shine {
+  0% {
+    left: -60%;
+    opacity: 0.9;
+  }
+
+  100% {
+    left: 120%;
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vp-home-hero .actions .vp-button {
+    transition: box-shadow 0.4s ease;
+  }
+
+  .vp-home-hero .actions .vp-button:hover::after {
+    animation: none;
+  }
+}
+
+/* ============================================================
+   细节动效：页面切换淡入、卡片悬停上浮、图标弹出、键位抬升
+   ============================================================ */
+/* Hero 背景缓慢推近，让首屏更有呼吸感 */
+.vp-home-hero .home-hero-bg {
+  animation: hyplay-hero-drift 30s ease-in-out infinite alternate;
+}
+
+@keyframes hyplay-hero-drift {
+  from {
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: scale(1.08) translate3d(0, -1.6%, 0);
+  }
+}
+
+.hyplay-stage:hover::before {
+  opacity: 0.9;
+}
+
+.hyplay-page-in {
+  animation: hyplay-page-in 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes hyplay-page-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* 卡片入场后，图标方块轻微弹出 */
+.hyplay-stage.is-revealed .hyplay-stage-badge,
+.vp-home-features .item.is-revealed .box .icon {
+  animation: hyplay-badge-pop 0.55s cubic-bezier(0.16, 1, 0.3, 1) var(--reveal-delay, 0ms) both;
+}
+
+@keyframes hyplay-badge-pop {
+  0% {
+    opacity: 0;
+    scale: 0.6;
+  }
+
+  70% {
+    opacity: 1;
+    scale: 1.08;
+  }
+
+  100% {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+/* 步骤条内的按键提示随 hover 抬升 */
+.hyplay-step-text kbd {
+  transition: translate 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hyplay-step:hover .hyplay-step-text kbd {
+  translate: 0 -1px;
+  box-shadow: 0 2px 0 var(--hyplay-card-border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hyplay-stage.is-revealed .hyplay-stage-badge,
+  .vp-home-features .item.is-revealed .box .icon {
+    animation: none;
+  }
+
+  .vp-home-hero .home-hero-bg {
+    animation: none;
+  }
+}
+
