@@ -627,6 +627,19 @@ html {
   cursor: text !important;
 }
 
+/* 视频区域：恢复系统光标并隐藏自定义跟随环。
+   跟随环有缓动滞后，在黑色视频区里容易让人误以为「光标卡在视频里 / 到边缘又弹回」，
+   且原生控件也需要真实光标。 */
+.has-cursor .hyplay-video-frame,
+.has-cursor .hyplay-video-frame * {
+  cursor: auto !important;
+}
+
+body:has(.hyplay-video-frame:hover) .hyplay-cursor-dot,
+body:has(.hyplay-video-frame:hover) .hyplay-cursor-ring {
+  opacity: 0 !important;
+}
+
 .hyplay-cursor-dot,
 .hyplay-cursor-ring {
   position: fixed;

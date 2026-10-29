@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, ref } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 
 interface Step {
   no: number
@@ -20,7 +20,7 @@ interface Stage {
 
 const SERVER_IP = '10.100.100.100'
 const QQ_FILES = 'https://qm.qq.com/q/GIciGhUFOM'
-const VIDEO_URL = 'https://f004.backblazeb2.com/file/hyplay/%E8%90%BD%E5%B9%95%E6%9B%B2%E8%BF%9B%E6%9C%8D%E6%95%99%E7%A8%8B.mp4'
+const VIDEO_URL = 'https://video.mcapp.eu.org/media/hyplayteach.mp4'
 
 const copied = ref(false)
 const copiedMod = ref<string | null>(null)
@@ -99,6 +99,9 @@ onBeforeUnmount(() => {
     clearTimeout(copiedModTimer)
   if (toastTimer)
     clearTimeout(toastTimer)
+  stopWatchdog()
+  clearRecoverTimer()
+  clearSeekTimer()
 })
 
 async function writeClipboard(text: string): Promise<boolean> {
@@ -158,6 +161,200 @@ async function copyIp() {
   }, 1500)
 }
 
+/* ---------- 视频：断点续传 / 自动恢复 ----------
+   网盘直链是「短时签名 302 → CDN」，长视频播到中途签名过期后，后续 Range 请求会失败，
+   播放器就会卡死（连播放/暂停都点不动）。这里加一层自愈：一旦停滞或报错，
+   就用带时间戳的新链接重新拿一次签名，并从上次位置续播。 */
+type PlayerState = 'idle' | 'playing' | 'recovering' | 'error'
+
+const videoEl = ref<HTMLVideoElement | null>(null)
+const videoSrc = ref(VIDEO_URL)
+const playerState = ref<PlayerState>('idle')
+const bufferingHint = ref(false)
+
+let watchdog: ReturnType<typeof setInterval> | null = null
+let recoverTimer: ReturnType<typeof setTimeout> | null = null
+let seekTimer: ReturnType<typeof setTimeout> | null = null
+let lastTime = 0
+let lastProgressAt = 0
+let recovering = false
+let failCount = 0
+let pendingSeek: number | null = null
+let pendingAutoplay = false
+
+function freshVideoSrc() {
+  return `${VIDEO_URL}${VIDEO_URL.includes('?') ? '&' : '?'}r=${Date.now()}`
+}
+
+function stopWatchdog() {
+  if (watchdog) {
+    clearInterval(watchdog)
+    watchdog = null
+  }
+}
+
+function clearRecoverTimer() {
+  if (recoverTimer) {
+    clearTimeout(recoverTimer)
+    recoverTimer = null
+  }
+}
+
+function clearSeekTimer() {
+  if (seekTimer) {
+    clearTimeout(seekTimer)
+    seekTimer = null
+  }
+}
+
+function startWatchdog() {
+  stopWatchdog()
+  const el = videoEl.value
+  lastTime = el?.currentTime ?? 0
+  lastProgressAt = Date.now()
+  watchdog = setInterval(() => {
+    const v = videoEl.value
+    if (!v || recovering)
+      return
+    if (v.error) {
+      recover()
+      return
+    }
+    if (v.paused || v.ended) {
+      lastTime = v.currentTime
+      lastProgressAt = Date.now()
+      return
+    }
+    if (Math.abs(v.currentTime - lastTime) > 0.05) {
+      lastTime = v.currentTime
+      lastProgressAt = Date.now()
+    }
+    else if (Date.now() - lastProgressAt > 6000 && v.readyState < 3) {
+      // 播放中 6 秒没前进且缓冲不足 —— 判定为卡住，续传
+      recover()
+    }
+  }, 2000)
+}
+
+function restart(seek: number, autoplay: boolean) {
+  const el = videoEl.value
+  if (!el)
+    return
+  pendingSeek = seek
+  pendingAutoplay = autoplay
+  playerState.value = 'recovering'
+  videoSrc.value = freshVideoSrc()
+  nextTick(() => {
+    try {
+      videoEl.value?.load()
+    }
+    catch {}
+  })
+  clearRecoverTimer()
+  // 若 25 秒内仍拿不到元数据，视为一次失败，连续失败则判死
+  recoverTimer = setTimeout(() => {
+    if (recovering) {
+      recovering = false
+      failCount += 1
+      if (failCount >= 4) {
+        playerState.value = 'error'
+        stopWatchdog()
+      }
+    }
+  }, 25000)
+}
+
+function recover(atTime?: number) {
+  const el = videoEl.value
+  if (!el || recovering)
+    return
+  recovering = true
+  bufferingHint.value = false
+  const wasPlaying = !el.paused && !el.ended
+  restart(atTime ?? (el.currentTime || lastTime || 0), wasPlaying)
+}
+
+function onLoadedMeta() {
+  const el = videoEl.value
+  if (!el)
+    return
+  if (pendingSeek != null) {
+    try {
+      el.currentTime = pendingSeek
+    }
+    catch {}
+    pendingSeek = null
+  }
+  if (pendingAutoplay)
+    el.play().catch(() => {})
+  pendingAutoplay = false
+  recovering = false
+  failCount = 0
+  clearRecoverTimer()
+  clearSeekTimer()
+  playerState.value = 'playing'
+  bufferingHint.value = false
+  startWatchdog()
+}
+
+function onVideoError() {
+  if (recovering)
+    return
+  failCount += 1
+  if (failCount >= 4) {
+    playerState.value = 'error'
+    stopWatchdog()
+    return
+  }
+  recover()
+}
+
+function onBuffering() {
+  if (playerState.value !== 'error')
+    bufferingHint.value = true
+}
+
+function onPlaying() {
+  bufferingHint.value = false
+  recovering = false
+  failCount = 0
+  playerState.value = 'playing'
+  lastTime = videoEl.value?.currentTime ?? 0
+  lastProgressAt = Date.now()
+}
+
+function onSeeking() {
+  const el = videoEl.value
+  if (!el || recovering)
+    return
+  let bufferedEnd = 0
+  for (let i = 0; i < el.buffered.length; i++)
+    bufferedEnd = Math.max(bufferedEnd, el.buffered.end(i))
+  // 拖到尚未缓冲的区域：若 5 秒内还没出画，用新签名从目标位置续传
+  if (el.currentTime > bufferedEnd + 1) {
+    clearSeekTimer()
+    seekTimer = setTimeout(() => {
+      const cur = videoEl.value
+      if (cur && cur.seeking && cur.readyState < 2)
+        recover(cur.currentTime)
+    }, 5000)
+  }
+}
+
+function manualReload() {
+  const el = videoEl.value
+  if (!el)
+    return
+  failCount = 0
+  recovering = true
+  bufferingHint.value = false
+  restart(0, true)
+}
+
+onMounted(() => {
+  startWatchdog()
+})
+
 async function copyMod(name: string) {
   const ok = await writeClipboard(name)
   showToast(ok, ok ? `已复制「${name}」，去搜索吧` : `复制失败，请手动复制 ${name}`)
@@ -172,6 +369,7 @@ async function copyMod(name: string) {
     copiedMod.value = null
   }, 1500)
 }
+
 </script>
 
 <template>
@@ -250,15 +448,37 @@ async function copyMod(name: string) {
 
       <div class="hyplay-video-frame">
         <video
-          :src="VIDEO_URL"
+          ref="videoEl"
+          :src="videoSrc"
           controls
           playsinline
-          preload="metadata"
+          preload="auto"
+          @loadedmetadata="onLoadedMeta"
+          @error="onVideoError"
+          @stalled="onBuffering"
+          @waiting="onBuffering"
+          @playing="onPlaying"
+          @seeking="onSeeking"
         />
+        <div v-if="bufferingHint || playerState === 'recovering'" class="hyplay-video-status">
+          <span class="hyplay-video-spinner" aria-hidden="true" />
+          {{ playerState === 'recovering' ? '正在恢复播放…' : '正在缓冲…' }}
+        </div>
+        <div v-if="playerState === 'error'" class="hyplay-video-error">
+          <p>视频加载失败，请重试或在新窗口打开。</p>
+          <div class="hyplay-video-error-actions">
+            <button type="button" class="hyplay-video-retry" @click="manualReload">
+              重新加载
+            </button>
+            <a class="hyplay-inline-link" :href="VIDEO_URL" target="_blank" rel="noreferrer">
+              <HyplayIcon name="link" class="hyplay-inline-icon" />在新窗口播放
+            </a>
+          </div>
+        </div>
       </div>
 
       <p class="hyplay-video-note">
-        视频托管在网盘中，首次播放需要缓冲几秒；
+        视频较大，网速慢时会在当前位置自动续传，无需重头再来；
         <a class="hyplay-inline-link" :href="VIDEO_URL" target="_blank" rel="noreferrer">
           <HyplayIcon name="link" class="hyplay-inline-icon" />打不开？在新窗口播放
         </a>
@@ -649,6 +869,82 @@ async function copyMod(name: string) {
   height: 100%;
   object-fit: contain;
   background: #000;
+}
+
+/* 缓冲 / 续传提示 */
+.hyplay-video-status {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 12.5px;
+  pointer-events: none;
+  backdrop-filter: blur(6px);
+}
+
+.hyplay-video-spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  animation: hyplay-spin 0.8s linear infinite;
+}
+
+@keyframes hyplay-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 连续续传失败后的兜底 */
+.hyplay-video-error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
+  text-align: center;
+}
+
+.hyplay-video-error p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.hyplay-video-error-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.hyplay-video-retry {
+  padding: 7px 18px;
+  border: none;
+  border-radius: 999px;
+  background: var(--vp-c-brand-1);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.hyplay-video-retry:hover {
+  background: var(--vp-c-brand-3);
 }
 
 .hyplay-video-note {
