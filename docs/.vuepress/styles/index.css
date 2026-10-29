@@ -341,13 +341,20 @@ html {
   transition: opacity 0.5s ease;
 }
 
-.vp-nav .vp-navbar:not(.top)::before {
+/* 浅色模式：不要毛玻璃，直接实心白底，避免背景图透上来影响阅读 */
+:root:not([data-theme='dark']) .vp-nav .vp-navbar::before {
+  inset: 0;
+  background: #fff;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  -webkit-mask-image: none;
+  mask-image: none;
   opacity: 1;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.08);
 }
 
-/* 浅色下额外压一层分隔线，进一步隔离背景图 */
-:root:not([data-theme='dark']) .vp-nav .vp-navbar::before {
-  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.06);
+.vp-nav .vp-navbar:not(.top)::before {
+  opacity: 1;
 }
 
 /* 去掉顶栏下沿的分隔线，避免出现白线 */
@@ -813,6 +820,94 @@ html {
 
   .vp-home-hero .home-hero-bg {
     animation: none;
+  }
+}
+
+/* ============================================================
+   触屏设备（平板 / 手机）
+   1. hover 效果在手指点按后会一直「粘住」，元素抖动、看起来像乱动
+   2. iOS Safari 会把这个 hover 当成第一次点按，导致第一次点链接只
+      是触发 hover、不跳转（要点第二次）
+   所以在没有 hover 能力的设备上，把所有 hover 动效整段关掉。
+   ============================================================ */
+@media (hover: none) {
+  /* 顶栏：只保留下划线标记「当前页」，hover 的位移/缩放全部取消 */
+  .vp-nav .navbar-menu-link::after {
+    transition: none !important;
+  }
+
+  .vp-nav .navbar-menu-link:hover .vp-icon {
+    translate: none !important;
+  }
+
+  .vp-nav .navbar-menu-link:hover {
+    color: inherit !important;
+  }
+
+  .vp-nav .navbar-menu-link.active:hover {
+    color: var(--vp-c-brand-1) !important;
+  }
+
+  .vp-nav .vp-navbar-title .title:hover img {
+    transform: none !important;
+  }
+
+  .vp-nav .vp-navbar .vp-switch-appearance:hover {
+    transform: none !important;
+    box-shadow: none !important;
+  }
+
+  .vp-nav .vp-navbar .vp-navbar-hamburger:hover:not(.active) {
+    background-color: transparent !important;
+  }
+
+  /* 卡片 / 按钮：点按后不要留下浮起、位移、光斑等「幽灵悬停」 */
+  .vp-home-features .vp-home-feature .box:hover,
+  .vp-home-features .vp-home-feature:hover,
+  .vp-home-features .vp-home-feature .box:hover .icon,
+  .vp-home-features .vp-home-feature .box:hover .link-text-icon,
+  .hyplay-card:hover,
+  .hyplay-info:hover,
+  .hyplay-stage:hover,
+  .hyplay-panel:hover,
+  .hyplay-link-btn:hover,
+  .hyplay-copy:hover,
+  .hyplay-step:hover .hyplay-step-text kbd {
+    translate: none !important;
+    scale: none !important;
+    transform: none !important;
+  }
+
+  /* 描边高光靠鼠标坐标，触屏没有 --mx/--my，干脆不显示 */
+  .hyplay-card::after,
+  .hyplay-stage::after,
+  .hyplay-panel::after,
+  .vp-home-features .vp-home-feature::after {
+    opacity: 0 !important;
+  }
+
+  /* 触屏没有悬停，内部光团固定在很淡的底光，不要跟着点按跳变 */
+  .hyplay-card:hover,
+  .hyplay-stage:hover {
+    --hyplay-blob: 0 !important;
+  }
+}
+
+/* 触屏点按：去掉双击缩放带来的延迟，避免「点了没反应」的错觉 */
+@media (pointer: coarse) {
+  .vp-navbar a,
+  .vp-navbar button,
+  .vp-navbar-hamburger,
+  .vp-nav-screen a,
+  .vp-nav-screen button,
+  .hyplay-card,
+  .hyplay-stage,
+  .hyplay-panel,
+  .hyplay-link-btn,
+  .hyplay-copy,
+  .vp-home-features .vp-home-feature,
+  .vp-home-hero .actions .vp-button {
+    touch-action: manipulation;
   }
 }
 
