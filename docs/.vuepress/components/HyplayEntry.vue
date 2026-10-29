@@ -23,9 +23,11 @@ const QQ_FILES = 'https://qm.qq.com/q/GIciGhUFOM'
 const VIDEO_URL = 'https://f004.backblazeb2.com/file/hyplay/%E8%90%BD%E5%B9%95%E6%9B%B2%E8%BF%9B%E6%9C%8D%E6%95%99%E7%A8%8B.mp4'
 
 const copied = ref(false)
+const copiedMod = ref<string | null>(null)
 const toast = ref<{ ok: boolean, text: string } | null>(null)
 
 let copiedTimer: ReturnType<typeof setTimeout> | null = null
+let copiedModTimer: ReturnType<typeof setTimeout> | null = null
 let toastTimer: ReturnType<typeof setTimeout> | null = null
 
 const stages: Stage[] = [
@@ -66,8 +68,8 @@ const stages: Stage[] = [
     steps: [
       {
         no: 9,
-        text: '推荐 MOD 下载：',
-        mods: ['Simple Voice Chat', 'IMBlocker', 'Simple Voice'],
+        text: '推荐 MOD 下载：<span class="hyplay-mod-tip">点击名字可复制</span>',
+        mods: ['Simple Voice Chat', 'IMBlocker', 'Custom Skin Loader'],
       },
       { no: 10, text: '启动游戏，点击「多人探险」' },
       { no: 11, text: `添加服务器，IP 地址 <code>${SERVER_IP}</code>` },
@@ -93,6 +95,8 @@ const stages: Stage[] = [
 onBeforeUnmount(() => {
   if (copiedTimer)
     clearTimeout(copiedTimer)
+  if (copiedModTimer)
+    clearTimeout(copiedModTimer)
   if (toastTimer)
     clearTimeout(toastTimer)
 })
@@ -151,6 +155,21 @@ async function copyIp() {
     clearTimeout(copiedTimer)
   copiedTimer = setTimeout(() => {
     copied.value = false
+  }, 1500)
+}
+
+async function copyMod(name: string) {
+  const ok = await writeClipboard(name)
+  showToast(ok, ok ? `已复制「${name}」，去搜索吧` : `复制失败，请手动复制 ${name}`)
+
+  if (!ok)
+    return
+
+  copiedMod.value = name
+  if (copiedModTimer)
+    clearTimeout(copiedModTimer)
+  copiedModTimer = setTimeout(() => {
+    copiedMod.value = null
   }, 1500)
 }
 </script>
@@ -276,7 +295,20 @@ async function copyIp() {
             />{{ step.link.text }}</a>{{ step.after }}</p>
               <p v-else class="hyplay-step-text" v-html="step.text" />
               <div v-if="step.mods" class="hyplay-mods">
-                <span v-for="mod in step.mods" :key="mod" class="hyplay-mod">{{ mod }}</span>
+                <button
+                  v-for="mod in step.mods" :key="mod"
+                  class="hyplay-mod" :class="{ done: copiedMod === mod }"
+                  type="button" :aria-label="`复制模组名称 ${mod}`"
+                  @click="copyMod(mod)"
+                >
+                  <svg v-if="copiedMod === mod" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+                    <path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z" fill="currentColor" />
+                  </svg>
+                  <svg v-else viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+                    <path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11v14z" fill="currentColor" />
+                  </svg>
+                  {{ mod }}
+                </button>
               </div>
             </div>
           </li>
@@ -868,13 +900,56 @@ async function copyIp() {
   margin-top: 8px;
 }
 
+/* 推荐 MOD：整颗胶囊就是复制按钮，点一下把名字复制走方便去搜索 */
+.hyplay-mod-tip {
+  margin-left: 6px;
+  font-size: 12px;
+  color: var(--vp-c-text-3);
+}
+
 .hyplay-mod {
-  padding: 3px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 11px;
   border-radius: 999px;
   border: 1px solid var(--hyplay-card-border);
   background: var(--vp-c-bg);
+  font: inherit;
   font-size: 12px;
+  line-height: 1.5;
   color: var(--vp-c-text-2);
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.hyplay-mod svg {
+  flex: none;
+  opacity: 0.55;
+}
+
+/* 只在有真正悬停能力的设备上变色，避免触屏点按后颜色一直挂着 */
+@media (hover: hover) {
+  .hyplay-mod:hover {
+    border-color: var(--vp-c-brand-1);
+    background: var(--vp-c-brand-soft);
+    color: var(--vp-c-brand-1);
+  }
+}
+
+.hyplay-mod:active {
+  scale: 0.97;
+}
+
+.hyplay-mod.done {
+  border-color: var(--vp-c-brand-1);
+  background: var(--vp-c-brand-soft);
+  color: var(--vp-c-brand-1);
+}
+
+.hyplay-mod.done svg {
+  opacity: 1;
 }
 
 /* ---------- 尾部提示 ---------- */
